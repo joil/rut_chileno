@@ -137,6 +137,22 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
+after_migrate = ["rut_chileno.custom_fields.rut_custom_fields.create_rut_field"]
+doc_events = {
+    "Employee": {
+        "validate": "rut_chileno.validations.employee_rut.validate_employee_rut"
+    },
+    "Customer": {
+        "validate": "rut_chileno.validations.customer_rut.validate_customer_rut"
+    },
+    "Supplier": {
+        "validate": "rut_chileno.validations.supplier_rut.validate_supplier_rut"
+    },
+    "Company": {
+        "validate": "rut_chileno.validations.company_rut.validate_company_rut"
+    }
+}
+
 # doc_events = {
 # 	"*": {
 # 		"on_update": "method",
