@@ -1,6 +1,6 @@
 ### Rut Chileno
 
-Custom Field for Chilieand DNI as RUT
+Custom Field for Chiliean DNI as RUT
 
 ### Installation
 
