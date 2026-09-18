@@ -3,7 +3,7 @@ name = "rut_chileno"
 authors = [
     { name = "Jose Pino", email = "joil@joil.cl"}
 ]
-description = "Custom Field for Chilieand DNI as RUT"
+description = "RUT chileno con validación de formato y dígito verificador para ERPNext"
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]

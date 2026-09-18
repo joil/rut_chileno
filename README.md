@@ -1,18 +1,68 @@
-### Rut Chileno
+# Rut Chileno
 
-Custom Field for Chiliean DNI as RUT
+RUT chileno (Rol Único Tributario) para ERPNext v16: valida el formato y el dígito verificador (módulo 11) y lo guarda de forma canónica.
 
-### Installation
+Requiere **ERPNext**. Compatible con Frappe/ERPNext version-16.
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+## Qué hace
+
+| DocType | Campo | Comportamiento |
+| --- | --- | --- |
+| Customer | `tax_id` (nativo, etiqueta **RUT**) | Valida, formatea y evita duplicados |
+| Supplier | `tax_id` (nativo, etiqueta **RUT**) | Igual |
+| Company | `tax_id` (nativo, etiqueta **RUT**) | Igual. **Obligatorio** si el país es Chile |
+| Employee | Custom Field `rut` | Valida, formatea y evita duplicados. Opcional |
+
+En Cliente, Proveedor y Compañía **no se crea un segundo campo RUT**: ERPNext ya tiene `tax_id`, que usan reportes, impresión y otras apps. Si existía un Custom Field `rut` de una versión anterior, su valor se copia a `tax_id` (si este estaba vacío) y el campo extra se elimina.
+
+## Formato
+
+Se aceptan estas entradas:
+
+- `12.345.678-5`
+- `12345678-5`
+- `123456785`
+- con espacios o ceros a la izquierda
+
+Se guarda siempre como **`12.345.678-5`** (puntos de miles, guión y `K` mayúscula).
+
+El dígito verificador se calcula con el algoritmo módulo 11 del SII. Un RUT con DV incorrecto se rechaza y el mensaje indica el dígito esperado.
+
+El RUT no es obligatorio en Cliente, Proveedor ni Empleado (permite terceros extranjeros o fichas incompletas). Si el campo tiene valor, **debe ser un RUT chileno válido**.
+
+## Instalación
 
 ```bash
 cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO
-bench install-app rut_chileno
+bench get-app $URL_OF_THIS_REPO --branch version-16
+bench --site $SITE install-app rut_chileno
 ```
 
-### Contributing
+Al instalar (y en cada `bench migrate`) la app:
+
+1. Crea o actualiza el campo **RUT** en Employee.
+2. Relabela `tax_id` como **RUT** en Customer, Supplier y Company.
+3. Migra datos del Custom Field `rut` antiguo hacia `tax_id`.
+4. Reformatea RUT ya guardados al formato canónico (los inválidos se dejan y se registran en el log).
+
+Para desinstalar:
+
+```bash
+bench --site $SITE uninstall-app rut_chileno
+```
+
+Se elimina el Custom Field de Employee y los Property Setter de `tax_id`. Los valores de `tax_id` no se borran.
+
+## Impresión (Jinja)
+
+En formatos de impresión:
+
+```jinja
+{{ doc.tax_id }}
+{{ doc.tax_id | formatea_rut }}
+```
+
+## Contributing
 
 This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
 
@@ -28,6 +78,6 @@ Pre-commit is configured to use the following tools for checking and formatting 
 - prettier
 - pyupgrade
 
-### License
+## License
 
 mit

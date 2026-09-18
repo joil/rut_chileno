@@ -1,14 +1,14 @@
 app_name = "rut_chileno"
 app_title = "Rut Chileno"
 app_publisher = "Jose Pino"
-app_description = "Custom Field for Chilieand DNI as RUT"
+app_description = "RUT chileno con validación de formato y dígito verificador para ERPNext"
 app_email = "joil@joil.cl"
 app_license = "mit"
 
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -43,7 +43,12 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Customer": "public/js/rut_party.js",
+	"Supplier": "public/js/rut_party.js",
+	"Company": "public/js/rut_party.js",
+	"Employee": "public/js/rut_party.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -74,22 +79,26 @@ app_license = "mit"
 # ----------
 
 # add methods and filters to jinja environment
-# jinja = {
-# 	"methods": "rut_chileno.utils.jinja_methods",
-# 	"filters": "rut_chileno.utils.jinja_filters"
-# }
+jinja = {
+	"methods": [
+		"rut_chileno.utils.rut.formatea_rut",
+		"rut_chileno.utils.rut.valida_rut",
+		"rut_chileno.utils.rut.normalize_rut",
+	],
+	"filters": [
+		"rut_chileno.utils.rut.formatea_rut",
+	],
+}
 
 # Installation
 # ------------
 
-# before_install = "rut_chileno.install.before_install"
-# after_install = "rut_chileno.install.after_install"
+after_install = "rut_chileno.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "rut_chileno.uninstall.before_uninstall"
-# after_uninstall = "rut_chileno.uninstall.after_uninstall"
+before_uninstall = "rut_chileno.uninstall.before_uninstall"
 
 # Integration Setup
 # ------------------
@@ -137,20 +146,12 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-after_migrate = ["rut_chileno.custom_fields.rut_custom_fields.create_rut_field"]
+after_migrate = ["rut_chileno.install.after_migrate"]
 doc_events = {
-    "Employee": {
-        "validate": "rut_chileno.validations.employee_rut.validate_employee_rut"
-    },
-    "Customer": {
-        "validate": "rut_chileno.validations.customer_rut.validate_customer_rut"
-    },
-    "Supplier": {
-        "validate": "rut_chileno.validations.supplier_rut.validate_supplier_rut"
-    },
-    "Company": {
-        "validate": "rut_chileno.validations.company_rut.validate_company_rut"
-    }
+	"Employee": {"validate": "rut_chileno.validations.validate_party_rut"},
+	"Customer": {"validate": "rut_chileno.validations.validate_party_rut"},
+	"Supplier": {"validate": "rut_chileno.validations.validate_party_rut"},
+	"Company": {"validate": "rut_chileno.validations.validate_party_rut"},
 }
 
 # doc_events = {
@@ -185,7 +186,7 @@ doc_events = {
 # Testing
 # -------
 
-# before_tests = "rut_chileno.install.before_tests"
+before_tests = "rut_chileno.install.before_tests"
 
 # Overriding Methods
 # ------------------------------
