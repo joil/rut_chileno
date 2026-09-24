@@ -8,10 +8,10 @@ Requiere **ERPNext**. Compatible con Frappe/ERPNext version-16.
 
 | DocType | Campo | Comportamiento |
 | --- | --- | --- |
-| Customer | `tax_id` (nativo, etiqueta **RUT**) | Valida, formatea y evita duplicados |
-| Supplier | `tax_id` (nativo, etiqueta **RUT**) | Igual |
-| Company | `tax_id` (nativo, etiqueta **RUT**) | Igual. **Obligatorio** si el país es Chile |
-| Employee | Custom Field `rut` | Valida, formatea y evita duplicados. Opcional |
+| Customer | `tax_id` (nativo, etiqueta **RUT**) | Primera pestaña y creación rápida. Obligatorio si la dirección o la compañía por defecto es Chile |
+| Supplier | `tax_id` (nativo, etiqueta **RUT**) | Primera pestaña y creación rápida. Obligatorio si el país es Chile |
+| Company | `tax_id` (nativo, etiqueta **RUT**) | Primera pestaña y creación rápida. Obligatorio si el país es Chile |
+| Employee | Custom Field `rut` | Primera pestaña (Overview) y creación rápida. Obligatorio si la compañía del empleado es de Chile |
 
 En Cliente, Proveedor y Compañía **no se crea un segundo campo RUT**: ERPNext ya tiene `tax_id`, que usan reportes, impresión y otras apps. Si existía un Custom Field `rut` de una versión anterior, su valor se copia a `tax_id` (si este estaba vacío) y el campo extra se elimina.
 
@@ -28,7 +28,7 @@ Se guarda siempre como **`12.345.678-5`** (puntos de miles, guión y `K` mayúsc
 
 El dígito verificador se calcula con el algoritmo módulo 11 del SII. Un RUT con DV incorrecto se rechaza y el mensaje indica el dígito esperado.
 
-El RUT no es obligatorio en Cliente, Proveedor ni Empleado (permite terceros extranjeros o fichas incompletas). Si el campo tiene valor, **debe ser un RUT chileno válido**.
+El RUT es **obligatorio solo para Chile** (país de la compañía, del proveedor, de la dirección del cliente o de la compañía del empleado). En terceros extranjeros puede quedar vacío. Si tiene valor, **debe ser un RUT chileno válido**.
 
 ## Instalación
 
@@ -40,8 +40,8 @@ bench --site $SITE install-app rut_chileno
 
 Al instalar (y en cada `bench migrate`) la app:
 
-1. Crea o actualiza el campo **RUT** en Employee.
-2. Relabela `tax_id` como **RUT** en Customer, Supplier y Company.
+1. Crea o actualiza el campo **RUT** en Employee (primera pestaña, creación rápida; obligatorio si la compañía es de Chile).
+2. Relabela `tax_id` como **RUT**, lo mueve a Detalles y lo incluye en creación rápida. Es obligatorio solo si el país es Chile.
 3. Migra datos del Custom Field `rut` antiguo hacia `tax_id`.
 4. Reformatea RUT ya guardados al formato canónico (los inválidos se dejan y se registran en el log).
 

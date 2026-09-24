@@ -45,7 +45,7 @@ def validate_party_rut(doc, method=None):
 	value = (getattr(doc, fieldname, None) or "").strip()
 	if not value:
 		if _rut_is_required(doc):
-			frappe.throw(_("El RUT es obligatorio para empresas de Chile."))
+			frappe.throw(_("El RUT es obligatorio para registros de Chile."))
 		return
 
 	formatted = valida_rut(value)
@@ -56,7 +56,26 @@ def validate_party_rut(doc, method=None):
 def _rut_is_required(doc) -> bool:
 	if doc.doctype == "Company":
 		return is_chile_country(getattr(doc, "country", None))
+	if doc.doctype == "Supplier":
+		return is_chile_country(getattr(doc, "country", None))
+	if doc.doctype == "Employee":
+		return company_is_chile(getattr(doc, "company", None))
+	if doc.doctype == "Customer":
+		return _customer_is_chile(doc)
 	return False
+
+
+def _customer_is_chile(doc) -> bool:
+	address = getattr(doc, "customer_primary_address", None)
+	if address:
+		country = frappe.db.get_value("Address", address, "country")
+		if country:
+			return is_chile_country(country)
+
+	company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+		"Global Defaults", "default_company"
+	)
+	return company_is_chile(company)
 
 
 def _assert_unique_rut(doc, fieldname: str, formatted: str):

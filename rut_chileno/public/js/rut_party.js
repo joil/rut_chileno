@@ -72,14 +72,63 @@ function apply_rut_format(frm) {
 	}
 }
 
+function is_chile_country(country) {
+	if (!country) {
+		return false;
+	}
+	const value = String(country).trim().toLowerCase();
+	return value === "chile" || value === "cl" || value === "chl";
+}
+
+function toggle_rut_required(frm, country) {
+	const fieldname = RUT_FIELD_BY_DOCTYPE[frm.doctype];
+	if (!fieldname || !frm.fields_dict[fieldname]) {
+		return;
+	}
+	frm.toggle_reqd(fieldname, is_chile_country(country));
+}
+
+function apply_rut_required(frm) {
+	if (frm.doctype === "Company" || frm.doctype === "Supplier") {
+		toggle_rut_required(frm, frm.doc.country);
+		return;
+	}
+	if (frm.doctype === "Employee" && frm.doc.company) {
+		frappe.db.get_value("Company", frm.doc.company, "country", (r) => {
+			toggle_rut_required(frm, r && r.country);
+		});
+		return;
+	}
+	if (frm.doctype === "Customer") {
+		if (frm.doc.customer_primary_address) {
+			frappe.db.get_value("Address", frm.doc.customer_primary_address, "country", (r) => {
+				toggle_rut_required(frm, r && r.country);
+			});
+			return;
+		}
+		const company = frappe.defaults.get_user_default("Company");
+		if (company) {
+			frappe.db.get_value("Company", company, "country", (r) => {
+				toggle_rut_required(frm, r && r.country);
+			});
+			return;
+		}
+	}
+	toggle_rut_required(frm, null);
+}
+
 ["Customer", "Supplier", "Company", "Employee"].forEach((doctype) => {
 	const fieldname = RUT_FIELD_BY_DOCTYPE[doctype];
 	frappe.ui.form.on(doctype, {
 		[fieldname]: apply_rut_format,
+		country: apply_rut_required,
+		company: apply_rut_required,
+		customer_primary_address: apply_rut_required,
 		refresh(frm) {
 			if (frm.fields_dict[fieldname]) {
 				frm.set_df_property(fieldname, "description", __("RUT chileno. Ejemplo: 12.345.678-5"));
 			}
+			apply_rut_required(frm);
 		},
 	});
 });

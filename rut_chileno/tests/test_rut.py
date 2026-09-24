@@ -54,12 +54,24 @@ class TestRutChileno(IntegrationTestCase):
 		self.assertEqual(field.fieldtype, "Data")
 		self.assertEqual(field.label, "RUT")
 		self.assertFalse(field.reqd)
+		self.assertTrue(field.allow_in_quick_entry)
 
-	def test_tax_id_is_labelled_rut(self):
-		for doctype in ("Customer", "Supplier", "Company"):
-			field = frappe.get_meta(doctype).get_field("tax_id")
+	def test_tax_id_is_on_details_and_quick_entry(self):
+		for doctype, after in (
+			("Customer", "customer_name"),
+			("Supplier", "supplier_name"),
+			("Company", "company_name"),
+		):
+			meta = frappe.get_meta(doctype)
+			field = meta.get_field("tax_id")
 			self.assertIsNotNone(field)
 			self.assertEqual(field.label, "RUT")
+			self.assertFalse(field.reqd)
+			self.assertTrue(field.allow_in_quick_entry)
+			order = [df.fieldname for df in meta.fields]
+			self.assertEqual(order[order.index(after) + 1], "tax_id")
+		self.assertTrue(frappe.get_meta("Company").quick_entry)
+		self.assertTrue(frappe.get_meta("Employee").quick_entry)
 
 	def test_legacy_party_rut_custom_field_removed(self):
 		for doctype in ("Customer", "Supplier", "Company"):
@@ -72,16 +84,58 @@ class TestRutChileno(IntegrationTestCase):
 		validate_party_rut(doc)
 		self.assertEqual(doc.tax_id, "12.345.678-5")
 
-	def test_chile_company_requires_rut(self):
-		doc = frappe.new_doc("Company")
-		doc.country = "Chile"
-		self.assertRaises(frappe.ValidationError, validate_party_rut, doc)
+	def test_chile_records_require_rut(self):
+		company = frappe.new_doc("Company")
+		company.country = "Chile"
+		self.assertRaises(frappe.ValidationError, validate_party_rut, company)
 
-	def test_foreign_company_allows_empty_tax_id(self):
-		doc = frappe.new_doc("Company")
-		doc.country = "United States"
-		validate_party_rut(doc)
-		self.assertFalse(doc.tax_id)
+		supplier = frappe.new_doc("Supplier")
+		supplier.country = "Chile"
+		self.assertRaises(frappe.ValidationError, validate_party_rut, supplier)
+
+		employee = frappe.new_doc("Employee")
+		chile_company = frappe.db.get_value("Company", {"country": "Chile"}, "name")
+		if not chile_company:
+			name = frappe.db.get_value("Company", {}, "name")
+			previous = frappe.db.get_value("Company", name, "country")
+			frappe.db.set_value("Company", name, "country", "Chile")
+			self.addCleanup(lambda: frappe.db.set_value("Company", name, "country", previous))
+			chile_company = name
+		employee.company = chile_company
+		self.assertRaises(frappe.ValidationError, validate_party_rut, employee)
+
+	def test_foreign_records_allow_empty_rut(self):
+		company = frappe.new_doc("Company")
+		company.country = "United States"
+		validate_party_rut(company)
+
+		supplier = frappe.new_doc("Supplier")
+		supplier.country = "United States"
+		validate_party_rut(supplier)
+
+		default_company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+			"Global Defaults", "default_company"
+		)
+		if default_company:
+			previous = frappe.db.get_value("Company", default_company, "country")
+			frappe.db.set_value("Company", default_company, "country", "United States")
+			self.addCleanup(
+				lambda: frappe.db.set_value("Company", default_company, "country", previous)
+			)
+		customer = frappe.new_doc("Customer")
+		validate_party_rut(customer)
+
+	def test_customer_requires_rut_when_default_company_is_chile(self):
+		default_company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+			"Global Defaults", "default_company"
+		)
+		if not default_company:
+			self.skipTest("No hay compañía por defecto")
+		previous = frappe.db.get_value("Company", default_company, "country")
+		frappe.db.set_value("Company", default_company, "country", "Chile")
+		self.addCleanup(lambda: frappe.db.set_value("Company", default_company, "country", previous))
+		customer = frappe.new_doc("Customer")
+		self.assertRaises(frappe.ValidationError, validate_party_rut, customer)
 
 	def test_duplicate_rut_is_rejected(self):
 		name = "_Test RUT Duplicate Customer"
